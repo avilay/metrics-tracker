@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metrics Tracker - Mood</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet" type="text/css">
+  <link href="https://cdn.jsdelivr.net/npm/quasar@2.18.6/dist/quasar.prod.css" rel="stylesheet" type="text/css">
+  <style>
+    .chart-container { width: 100%; height: 250px; }
+  </style>
+</head>
+<body class="body--dark" style="background: #1d1d1d;">
+  <div id="q-app">
+    <q-layout view="hHh lpR fFf">
+      <q-header bordered class="bg-dark">
+        <q-toolbar>
+          <q-btn flat round dense icon="arrow_back"></q-btn>
+          <q-toolbar-title class="text-weight-bold">Mood</q-toolbar-title>
+        </q-toolbar>
+      </q-header>
+
+      <q-page-container>
+        <q-page class="q-pa-md" style="background: #1d1d1d;">
+          <!-- Time Range -->
+          <div class="q-mb-md">
+            <q-btn-group spread class="full-width">
+              <q-btn v-for="r in timeRanges" :key="r.value" :label="r.label"
+                :color="timeRange === r.value ? 'teal' : 'grey-8'"
+                :text-color="timeRange === r.value ? 'white' : 'grey-4'"
+                @click="timeRange = r.value" no-caps></q-btn>
+            </q-btn-group>
+          </div>
+
+          <!-- Chart -->
+          <q-card class="bg-grey-10 q-mb-md" dark>
+            <q-card-section>
+              <div class="text-subtitle2 text-grey-4 q-mb-sm">Mood Count by {{ timeRangeLabel }}</div>
+              <div id="main-chart" class="chart-container"></div>
+            </q-card-section>
+          </q-card>
+
+          <!-- Data Table -->
+          <q-card class="bg-grey-10" dark>
+            <q-card-section>
+              <div class="text-subtitle2 text-grey-4 q-mb-sm">Data</div>
+              <q-table :rows="tableRows" :columns="tableColumns" row-key="period"
+                dark flat hide-bottom class="bg-grey-10" :rows-per-page-options="[0]"></q-table>
+            </q-card-section>
+          </q-card>
+        </q-page>
+      </q-page-container>
+
+      <q-page-sticky position="bottom-right" :offset="[24, 24]">
+        <q-btn fab color="teal" icon="add" @click="showLog = true"></q-btn>
+      </q-page-sticky>
+
+      <!-- Log Entry Modal -->
+      <q-dialog v-model="showLog" position="bottom">
+        <q-card class="bg-grey-10" dark style="width: 100%; max-width: 500px;">
+          <q-card-section>
+            <div class="text-h6 text-white q-mb-md">Log Mood</div>
+            <q-option-group v-model="logValue" :options="categories" color="teal" dark type="radio" class="q-mb-md"></q-option-group>
+            <div class="row q-col-gutter-sm q-mb-md">
+              <div class="col-6">
+                <q-input v-model="logDate" label="Date" dark filled>
+                  <template v-slot:append>
+                    <q-icon name="event" class="cursor-pointer">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date v-model="logDate" dark color="teal" mask="YYYY-MM-DD"></q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-6">
+                <q-input v-model="logTime" label="Time" dark filled>
+                  <template v-slot:append>
+                    <q-icon name="access_time" class="cursor-pointer">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-time v-model="logTime" dark color="teal" mask="HH:mm"></q-time>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
+              </div>
+            </div>
+            <q-btn color="teal" icon="check_circle" label="Log Entry" class="full-width" @click="submit"></q-btn>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+    </q-layout>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quasar@2.18.6/dist/quasar.umd.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script>
+    const app = Vue.createApp({
+      setup() {
+        const now = new Date();
+        return {
+          showLog: Vue.ref(false),
+          logValue: Vue.ref(null),
+          logDate: Vue.ref(now.toISOString().slice(0, 10)),
+          logTime: Vue.ref(now.toTimeString().slice(0, 5)),
+          categories: [
+            { label: 'Happy', value: 'Happy' }, { label: 'Sad', value: 'Sad' },
+            { label: 'Serene', value: 'Serene' }, { label: 'Angry', value: 'Angry' },
+          ],
+          timeRange: Vue.ref('W'),
+          timeRanges: [
+            { label: 'D', value: 'D' }, { label: 'W', value: 'W' },
+            { label: 'M', value: 'M' }, { label: '6M', value: '6M' }, { label: 'Y', value: 'Y' },
+          ],
+          chart: null,
+        };
+      },
+      computed: {
+        timeRangeLabel() {
+          return { D: 'Hour', W: 'Day', M: 'Week', '6M': 'Month', Y: 'Month' }[this.timeRange] || 'Day';
+        },
+        chartData() {
+          return {
+            W: { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+              happy: [1, 1, 2, 1, 0, 1, 1], sad: [1, 1, 0, 0, 1, 0, 0], serene: [1, 1, 1, 1, 0, 1, 1], angry: [0, 0, 1, 0, 1, 0, 0] },
+            M: { labels: ['Week 1','Week 2','Week 3','Week 4'],
+              happy: [6, 4, 5, 7], sad: [3, 2, 4, 1], serene: [5, 6, 3, 4], angry: [1, 2, 0, 1] },
+          }[this.timeRange] || {
+            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+            happy: [1, 1, 2, 1, 0, 1, 1], sad: [1, 1, 0, 0, 1, 0, 0], serene: [1, 1, 1, 1, 0, 1, 1], angry: [0, 0, 1, 0, 1, 0, 0]
+          };
+        },
+        tableColumns() {
+          return [
+            { name: 'period', label: 'Period', field: 'period', align: 'left' },
+            { name: 'happy', label: 'Happy', field: 'happy', align: 'right' },
+            { name: 'sad', label: 'Sad', field: 'sad', align: 'right' },
+            { name: 'serene', label: 'Serene', field: 'serene', align: 'right' },
+            { name: 'angry', label: 'Angry', field: 'angry', align: 'right' },
+          ];
+        },
+        tableRows() {
+          const d = this.chartData;
+          return d.labels.map((l, i) => ({ period: l, happy: d.happy[i], sad: d.sad[i], serene: d.serene[i], angry: d.angry[i] }));
+        },
+      },
+      watch: {
+        timeRange() { this.$nextTick(() => this.renderChart()); },
+      },
+      mounted() { setTimeout(() => this.renderChart(), 300); },
+      methods: {
+        renderChart() {
+          if (!this.chart) this.chart = echarts.init(document.getElementById('main-chart'));
+          const d = this.chartData;
+          this.chart.setOption({
+            backgroundColor: 'transparent',
+            grid: { top: 30, right: 20, bottom: 30, left: 40 },
+            legend: { data: ['Happy','Sad','Serene','Angry'], textStyle: { color: '#aaa', fontSize: 11 }, top: 0 },
+            xAxis: { type: 'category', data: d.labels, axisLabel: { color: '#aaa', fontSize: 11 }, axisLine: { lineStyle: { color: '#555' } } },
+            yAxis: { type: 'value', axisLabel: { color: '#aaa', fontSize: 11 }, splitLine: { lineStyle: { color: '#333' } } },
+            series: [
+              { name: 'Happy', type: 'bar', stack: 'mood', data: d.happy, itemStyle: { color: '#66bb6a' } },
+              { name: 'Sad', type: 'bar', stack: 'mood', data: d.sad, itemStyle: { color: '#42a5f5' } },
+              { name: 'Serene', type: 'bar', stack: 'mood', data: d.serene, itemStyle: { color: '#ffa726' } },
+              { name: 'Angry', type: 'bar', stack: 'mood', data: d.angry, itemStyle: { color: '#ef5350', borderRadius: [6, 6, 0, 0] } },
+            ],
+            tooltip: { trigger: 'axis', backgroundColor: '#333', borderColor: '#555', textStyle: { color: '#fff' } },
+          }, true);
+          this.chart.resize();
+        },
+        submit() {
+          this.showLog = false;
+          Quasar.Notify.create({ message: `Mood: ${this.logValue} logged!`, color: 'teal', position: 'top' });
+        },
+      }
+    });
+    app.use(Quasar, { config: { dark: true } });
+    app.mount('#q-app');
+  </script>
+</body>
+</html>

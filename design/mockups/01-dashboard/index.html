@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metrics Tracker - Dashboard</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet" type="text/css">
+  <link href="https://cdn.jsdelivr.net/npm/quasar@2.18.6/dist/quasar.prod.css" rel="stylesheet" type="text/css">
+  <style>
+    .sparkline-chart { width: 100%; height: 80px; }
+    .metric-card { cursor: pointer; transition: transform 0.15s; border: 1px solid #333 !important; }
+    .metric-card:hover { transform: scale(1.02); }
+
+  </style>
+</head>
+<body class="body--dark" style="background: #1d1d1d;">
+  <div id="q-app">
+    <q-layout view="hHh lpR fFf">
+      <!-- Header -->
+      <q-header bordered class="bg-dark">
+        <q-toolbar>
+          <q-toolbar-title class="text-weight-bold">Metrics Tracker</q-toolbar-title>
+          <q-btn flat round dense icon="person">
+            <q-menu>
+              <q-list style="min-width: 200px">
+                <q-item clickable v-close-popup>
+                  <q-item-section avatar>
+                    <q-icon name="login"></q-icon>
+                  </q-item-section>
+                  <q-item-section>Sign in with Google</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+        </q-toolbar>
+      </q-header>
+
+      <!-- Main Content -->
+      <q-page-container>
+        <q-page class="q-pa-md" style="background: #1d1d1d;">
+          <div class="row q-col-gutter-md">
+
+            <!-- Weight Card (Real Valued) -->
+            <div class="col-12 col-sm-6">
+              <q-card class="bg-grey-10 metric-card" dark>
+                <q-card-section>
+                  <div class="text-subtitle1 text-grey-4">Weight</div>
+                  <div class="q-mt-sm">
+                    <span class="text-h4 text-white text-weight-bold">183.5</span>
+                    <span class="text-subtitle1 text-grey-5 q-ml-xs">lbs</span>
+                  </div>
+                  <div class="text-caption text-grey-6 q-mt-xs">Today, 8:30 AM</div>
+                </q-card-section>
+                <q-card-section class="q-pt-none">
+                  <div id="chart-weight" class="sparkline-chart"></div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <!-- Meditate Card (Binary) -->
+            <div class="col-12 col-sm-6">
+              <q-card class="bg-grey-10 metric-card" dark>
+                <q-card-section>
+                  <div class="text-subtitle1 text-grey-4">Meditate</div>
+                  <div class="q-mt-sm">
+                    <span class="text-h4 text-white text-weight-bold">3x</span>
+                    <span class="text-subtitle1 text-grey-5 q-ml-xs">this week</span>
+                  </div>
+                  <div class="text-caption text-grey-6 q-mt-xs">Last: Yesterday, 7:00 AM</div>
+                </q-card-section>
+                <q-card-section class="q-pt-none">
+                  <div id="chart-meditate" class="sparkline-chart"></div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <!-- Mood Card (Categorical) -->
+            <div class="col-12 col-sm-6">
+              <q-card class="bg-grey-10 metric-card" dark>
+                <q-card-section>
+                  <div class="text-subtitle1 text-grey-4">Mood</div>
+                  <div class="q-mt-sm">
+                    <span class="text-h4 text-white text-weight-bold">Serene</span>
+                    <span class="text-subtitle1 text-grey-5 q-ml-xs">17x this week</span>
+                  </div>
+                  <div class="text-caption text-grey-6 q-mt-xs">Today, 5:00 PM</div>
+                </q-card-section>
+                <q-card-section class="q-pt-none">
+                  <div id="chart-mood" class="sparkline-chart"></div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <!-- Blood Glucose Card (Conditional Properties) -->
+            <div class="col-12 col-sm-6">
+              <q-card class="bg-grey-10 metric-card" dark>
+                <q-card-section>
+                  <div class="text-subtitle1 text-grey-4">Blood Glucose</div>
+                  <div class="q-mt-sm">
+                    <span class="text-h4 text-white text-weight-bold">120</span>
+                    <span class="text-subtitle1 text-grey-5 q-ml-xs">mg/dL</span>
+                  </div>
+                  <div class="text-caption text-grey-6 q-mt-xs">Breakfast · 1hr after · Today 10:00 AM</div>
+                </q-card-section>
+                <q-card-section class="q-pt-none">
+                  <div id="chart-glucose" class="sparkline-chart"></div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+          </div>
+        </q-page>
+      </q-page-container>
+
+      <!-- FAB -->
+      <q-page-sticky position="bottom-right" :offset="[24, 24]">
+        <q-btn fab color="teal" icon="add"></q-btn>
+      </q-page-sticky>
+    </q-layout>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quasar@2.18.6/dist/quasar.umd.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script>
+    const app = Vue.createApp({
+      setup() {
+        return {};
+      },
+      mounted() {
+        setTimeout(() => this.initCharts(), 300);
+      },
+      methods: {
+        initCharts() {
+          const charts = [];
+
+          const weightEl = document.getElementById('chart-weight');
+          if (weightEl) {
+            const c = echarts.init(weightEl);
+            c.setOption({
+              grid: { top: 5, right: 5, bottom: 5, left: 5 },
+              xAxis: { type: 'category', show: false, data: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+              yAxis: { type: 'value', show: false, min: 178 },
+              series: [{
+                type: 'bar', data: [182, 183, 181.5, 184, 183, 182.5, 183.5],
+                itemStyle: { color: '#26a69a', borderRadius: [4, 4, 0, 0] }, barWidth: '60%'
+              }]
+            });
+            charts.push(c);
+          }
+
+          const medEl = document.getElementById('chart-meditate');
+          if (medEl) {
+            const c = echarts.init(medEl);
+            c.setOption({
+              grid: { top: 5, right: 5, bottom: 5, left: 5 },
+              xAxis: { type: 'category', show: false, data: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+              yAxis: { type: 'value', show: false },
+              series: [{
+                type: 'bar', data: [1, 0, 1, 0, 0, 1, 0],
+                itemStyle: { color: '#ab47bc', borderRadius: [4, 4, 0, 0] }, barWidth: '60%'
+              }]
+            });
+            charts.push(c);
+          }
+
+          const moodEl = document.getElementById('chart-mood');
+          if (moodEl) {
+            const c = echarts.init(moodEl);
+            c.setOption({
+              grid: { top: 5, right: 5, bottom: 5, left: 5 },
+              xAxis: { type: 'category', show: false, data: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+              yAxis: { type: 'value', show: false },
+              series: [{
+                type: 'bar', data: [1, 1, 1, 1, 0, 1, 1],
+                itemStyle: { color: '#ffa726', borderRadius: [4, 4, 0, 0] }, barWidth: '60%'
+              }]
+            });
+            charts.push(c);
+          }
+
+          const glucEl = document.getElementById('chart-glucose');
+          if (glucEl) {
+            const c = echarts.init(glucEl);
+            c.setOption({
+              grid: { top: 5, right: 5, bottom: 5, left: 5 },
+              xAxis: { type: 'category', show: false, data: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+              yAxis: { type: 'value', show: false, min: 80 },
+              series: [{
+                type: 'bar', data: [101, 150, 120, 95, 135, 110, 120],
+                itemStyle: { color: '#ef5350', borderRadius: [4, 4, 0, 0] }, barWidth: '60%'
+              }]
+            });
+            charts.push(c);
+          }
+
+          window.addEventListener('resize', () => charts.forEach(c => c.resize()));
+        }
+      }
+    });
+
+    app.use(Quasar, {
+      config: {
+        dark: true,
+        brand: { primary: '#26a69a' }
+      }
+    });
+    app.mount('#q-app');
+  </script>
+</body>
+</html>
