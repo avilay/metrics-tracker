@@ -108,6 +108,23 @@
               </q-card>
             </div>
 
+            <!-- Hike Card (Cross-Product Properties) -->
+            <div class="col-12 col-sm-6">
+              <q-card class="bg-grey-10 metric-card" dark>
+                <q-card-section>
+                  <div class="text-subtitle1 text-grey-4">Hike</div>
+                  <div class="q-mt-sm">
+                    <span class="text-h4 text-white text-weight-bold">160</span>
+                    <span class="text-subtitle1 text-grey-5 q-ml-xs">min</span>
+                  </div>
+                  <div class="text-caption text-grey-6 q-mt-xs">Woods &middot; 6.4 mi &middot; 259 ft &middot; Yesterday 2:00 PM</div>
+                </q-card-section>
+                <q-card-section class="q-pt-none">
+                  <div id="chart-hike" class="sparkline-chart"></div>
+                </q-card-section>
+              </q-card>
+            </div>
+
           </div>
         </q-page>
       </q-page-container>
@@ -189,6 +206,21 @@
               series: [{
                 type: 'bar', data: [101, 150, 120, 95, 135, 110, 120],
                 itemStyle: { color: '#ef5350', borderRadius: [4, 4, 0, 0] }, barWidth: '60%'
+              }]
+            });
+            charts.push(c);
+          }
+
+          const hikeEl = document.getElementById('chart-hike');
+          if (hikeEl) {
+            const c = echarts.init(hikeEl);
+            c.setOption({
+              grid: { top: 5, right: 5, bottom: 5, left: 5 },
+              xAxis: { type: 'category', show: false, data: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+              yAxis: { type: 'value', show: false },
+              series: [{
+                type: 'bar', data: [0, 49, 0, 0, 220, 0, 160],
+                itemStyle: { color: '#42a5f5', borderRadius: [4, 4, 0, 0] }, barWidth: '60%'
               }]
             });
             charts.push(c);

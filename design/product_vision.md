@@ -2,15 +2,38 @@
 
 This will be a website that can easily be viewed on a mobile phone as well as on a desktop. Its purpose is to help the user track a bunch of metrics - their value along with the timestamp when it was recorded - and then analyze the movement of these metrics over time. They should be able to analyze individual metrics as well overlay multiple metrics and look at their movement over time.
 
-By default is should be possible to group all metrics by timeseries with a configurable aggregate function, e.g., it should be possible to view the weekly average of exercise minutes. Here "exercise" is the metric, "minutes" is the unit of measurement, "average" is the aggregator function, and "weekly" is the property that is being grouped.
+By default is should be possible to group all metrics by timeseries with a configurable aggregate function, e.g., it should be possible to view the weekly average of exercise minutes. Here "exercise" is the metric, "minutes" is the unit of measurement, "average" is the aggregator function, and "weekly" is the property that is being grouped. In addition to timeseries, if a metric has properties, it should be able to group by properites as well. 
 
-Users should be able to track the following different types of metrics. I have provided a possible way to model the data, but it is not the only way, feel free to suggest other data models. All the data models have a `recorded_at` field whose values are timestamps.
+A metric is defined as follows:
 
-## Binary Metrics
+* **Name:** The name of the metric, this can be any user defined value.
+* **Value Type:** This type of value the metric measurement can take. It can be one of the following three types:
+  * **Numeric:** These are real valued metrics where the user will provide a real number as the metric's measurement.
+  * **Labeled:** These are categorical valued metrics where the user will provide one of several pre-defined strings as the metric's measurement.
+  * **None:** These are metrics that are just logged, there is no measurement associated with it.
+* **Unit:** The unit of the metric. This only applies to metrics with values. This will be a user provided string.
+* **Properties:** A metric may have several properties. Of course it is possible for a metric to have no properties at all. Each property in turn is defined as follows:
+  * *Name:* Name of the property, this can be any user defined value.
+  * *Value Type:* The type of value the property can take. It can be one of the folowing types:
+    * *Numeric:* User will provide a real number as the value of the property.
+    * *Labels:* User will provide one of several pre-defined strings as the value of the property.
 
-This is the simplest type of metric. An example is to track when they meditate. The "meditate" metric will just have a timestamp to record when they meditated. 
+When the user logs a metric, the system will provide the timestamp of when the metric is being logged, and the user will provide the value of the metric if needed, and the values of any properties that the metric has.
 
-#### Data Model
+## Examples
+
+This section has some example metrics that illustrate the concepts of the metric definition and metric logs described above.
+
+### Metric with no values
+
+User wants to track whenever they meditate. 
+
+#### Definition
+
+* **Name:** Meditation
+* **Value Type:** None
+
+#### Logs
 
 | recorded_at |
 | ----------- |
@@ -33,13 +56,19 @@ Only the default timeseries grouping is possible. `count` is the only aggregate 
 | week 1 | 3     |
 | week 2 | 4     |
 
-## Real Valued Metric
+### Metric with numeric values
 
-This is another simple metric where the value is a real number along with the unit of measurement. For example "weight" which is measured in "lbs". 
+User wants to monitor their weight over time. They measure their weight in lbs.
 
-#### Data Model
+#### Definition
 
-| recorded_on | value |
+* **Name:** Weight
+* **Value Type:** Numeric
+* **Units:** lbs
+
+#### Logs
+
+| recorded_at | value |
 | ----------- | ----- |
 | 1767486480  | 180   |
 | 1767996960  | 190   |
@@ -60,11 +89,17 @@ Only default timeseries grouping is possbile. Various aggregate functions like `
 | week 1 | 180.2   |
 | week 2 | 192.4   |
 
-## Categorical Metric
+### Metric with labeled values
 
-The metric can take one of a fixed number of string values, or categories. An example is to track users' mood, which can be happy, sad, serene, and angry.
+User wants to track their mood throughout the day - whether they are "Happy", "Sad", "Angry", or "Serene".
 
-#### Data Model
+#### Definition
+
+* **Name:** Mood
+* **Value Type:** Labeled
+  * **Allowed Labels**: One of `Happy`, `Sad`, `Angry`, or `Serene`
+
+#### Logs
 
 | recorded_at | value  |
 | ----------- | ------ |
@@ -89,20 +124,29 @@ Timeseries is the first level of grouping, within that they can be grouped by th
 | week 1 | Happy<br />Sad<br />Serene | 2<br />3<br />4 |
 | week 2 | Happy<br />Angry<br />Sad  | 3<br />1<br />2 |
 
-## Metrics with Properties
+### Metric with labeled properties but no value
 
-These are metrics where each reading has a bunch of properties associated with them. There are two variants of this - firstly where each reading will have values for each property, lets call this type of metric as "cross-product properties", and secondly where a reading will have properties based the value of some other property, lets call this type of metric as "conditional properties". The metric can optionally have a real number as value, or it can just be the timestamp along with the property values.
+User wants to be mindful of what they eat. To that end they want to track the kind of meals they have, whether it is healthy or not, how tasty is it, wheather it filled them up or not, whether they cooked it at home, got it from a restaurant, or from a tiffin service.
 
-### Cross-Product Properties
+#### Definition
 
-Each property can have one of several string values. The metric space of metric readings can be thought of as the cross-product of different values that each property can take. For example, user wants to track their food. The "food" metric has the following properties:
+* **Name:** Meal
+* **Value Type**: None
+* **Properties:**
+  * *Name:* Source
+    * *Value Type*: Labeled
+    * *Allowed Values:* `Home-Cooked`, `Take-Out`, `Tiffin`
+  * *Name:* Taste
+    * *Value Type:* Labeled
+    * *Allowed Values:* `Delicious`, `Edible`, `Bad`
+  * *Name:* Is_Filling
+    * *Value Type:* Labeled
+    * *Allowed Value*: `True`, `False`
+  * *Name:* Healthy
+    * *Value Type:* Labeled
+    * *Allowed Values:* `Very`, `Medium`, `No`
 
-* Source: This property can take one of the values "home-cookied", "take-out", "tiffin".
-* Taste: This property can take one of the values "delicious", "edible", "bad".
-* Is_Filling: This property can take one of True or False.
-* Healthy: This property can take values "very", "medium", "no".
-
-#### Data Model
+#### Logs
 
 | recorded_on | source      | taste     | is_filling | healthy |
 | ----------- | ----------- | --------- | ---------- | ------- |
@@ -125,13 +169,26 @@ The metric can be grouped by any property. Continuing the filtering example, I c
 | week 1 | very<br />medium<br />no | 3<br />4<br />1 |
 | week 2 | very<br />medium<br />no | 5<br />2<br />0 |
 
-#### Conditional Properties
+### Metric with labeled properties and numeric values
 
-This is best explained by an example. Lets say user wants to track their blood glucose. The "blood-glucose" metric can have a property "meal" which can take values "fasting", "breakfast", "lunch", "snack", "dinner". If the value of "meal" is any thing other than "fasting", a second property called "delta" can take on one of the values from like "one-hour-after", "two-hours-after", and "before". But the "delta" property doesn't make much sense if the "meal" is "fasting". The actual reading is a real number. Strictly speaking it is an integer, but we can keep it as a real number to make things simpler. The unit is "mg/dL".
+User wants to track their blood glucose. They usually measure their blood glucose when they are fasting, one hour after breakfast, two hours after breakfast, or after a workout. At times they may also measure it on an ad-hoc basis.
 
-#### Data Model
+#### Definition
 
-| recorded_on | meal      | delta           | value |
+* **Name:** Blood-Glucose
+* **Value Type:** Numeric
+* **Unit:** mg/dL
+* **Properties:**
+  * *Name:* Event
+    * *Value Type*: Labeled
+    * *Allowed Values:* `Fasting`, `Breakfast`, `Workout`, `Ad-Hoc`
+  * *Name:* Delta
+    * *Value Type:* Labeled
+    * *Allowed Values:* `One-Hour-After`, `Two-Hours-After`
+
+#### Logs
+
+| recorded_on | event     | delta           | value |
 | ----------- | --------- | --------------- | ----- |
 | 1767619980  | fasting   |                 | 101   |
 | 1767996960  | breakfast | one-hour-after  | 150   |
@@ -139,18 +196,57 @@ This is best explained by an example. Lets say user wants to track their blood g
 
 #### Filtering
 
-The metric can be filtered by any property/value, e.g., I can filter for readings that I took one hour after any meal, so the filter is `delta == "one-hour-after"`.
+The metric can be filtered by any property/value, e.g., I can filter for readings that I took one hour after any event, so the filter is `delta == "one-hour-after"`.
 
 #### Grouping
 
 Can group by any property. Given the value is a real number, the aggregate function can be configured.  Grouping all breakfast meals by the delta will look like this -
 
-**Weekly Average of meal == "breakfast" Blood-Glucose by Delta**
+**Weekly Average of event == "breakfast" Blood-Glucose by Delta**
 
 | Week   | Delta                                           | Average               |
 | ------ | ----------------------------------------------- | --------------------- |
 | week 1 | before<br />one-hour-after<br />two-hours-after | 120<br />150<br />130 |
 | week 2 | before<br />one-hour-after<br />two-hours-after | 120<br />150<br />130 |
+
+### Metric with mixed properties and numeric values
+
+User wants to keep track of the hikes they go on. The main metric they want to track is how long they hiked. Along with that they also want to track what was the elevation gain on the hike, how long it was, what kind of landscape was it - did it have waterfalls, was it on the coast, on the mountains, etc.
+
+#### Definition
+
+* **Name:** Hike
+* **Value Type:** Numeric
+* **Units:** Minutes
+* **Properites:**
+  * *Name:* Length
+    * *Value Type:* Numeric
+    * *Units:* Miles
+  * *Name:* Elevation Gain
+    * *Value Type:* Numeric
+    * *Units:* Feet
+  * *Name:* Landscape
+    * *Value Type:* Labeled
+    * *Allowed Values:* `Coastal`, `Lake`, `River`, `Mountain`, `Ridge`, `Woods`
+
+#### Logs
+
+| recorded_at | loop_length | elevation_gain | landscape | value |
+| ----------- | ----------- | -------------- | --------- | ----- |
+| 1767619980  | 3.4         | 59             | Coastal   | 68    |
+| 1767996960  | 10.3        | 300            | Mountain  | 213   |
+
+#### Filtering
+
+Filter on any property. For the numeric properties, it will be a `<`, `<=`, `==`, `>=`, or `>` filter in any number and combination, e.g., user can filter for hikes that were between 2 and 10 miles. The filter will be `loop_length >= 2 && loop_length <= 10`.
+
+#### Grouping
+
+Group by any property. For numeric properties, bin the property values and then aggregate the metric values within each bin. Continuing the above example, I can group the hikes that were between 2 and 10 miles in length by their elevation gain, and calculate the average number of minutes the hike lasted. 
+
+| Week   | Elevation Gain                           | Average            |
+| ------ | ---------------------------------------- | ------------------ |
+| week 1 | [0, 100)<br />[100, 200)<br />[200, 300] | 30<br />40<br />57 |
 
 ## Analysis
 
@@ -176,3 +272,18 @@ I really like the UI of Apple Health app. Here are some screen shots.
 ## Additonal Notes
 
 Instead of having such a structured way of defining and entering metrics, maybe have the user describe using free text what they are recording, e.g., they can record "blood glucose one hour after breakfast" and a value, and the system automatically figures out the schema for later analysis.
+
+## User Authentication
+
+There will be the following types of users of this system:
+
+* Fully authenticated users: These will sign into their Google account. This will enable them to use the web app across different browsers and devices. It will also ensure that their data is preserved even after clearing all the cookies in their browser.
+* Anonymous users: These are users who did not sign into their Google account. These users will be assigned an anonymous account in Firebase. This will ensure that as long as they are using the same browser, their data is preserved across sessions. Most importantly, a website visitor has to actively choose to be an anonymous user. This is different from sigining in all visitors who are not fully authenticated as anonymous users.
+* Demo user: This is  a user that has canned data. Any real user can sign in as a demo user to see what the system looks like before actually committing to using this system to track their metrics. A demo user has been created in Firebase with an email provider. This user is also pre-populated in the app database.
+* Visitor: This is a user who has chosen to not sign in at all. They are not fully authenticated, they are not anonymous, and they are not demo users.
+
+The only page a visitor can access is the welcome page which will highlight the benefits of using this webapp. The welcome page will also explain the three authentication options to the visitor. The auth control menu on the top right of the nav bar will give the visitor three options - sign into their Google account, use without creating an account (anonymous user), sign into the demo account. 
+
+For non-visitors, i.e, users who are one of fully authenticated, anonymous, or demo, the auth control will have two menu items - go to their Accounts page, or sign out.
+
+The Accounts page will have information that the system knows about the user - if they are a Google user, their email, their profile photo, their name, their user id, etc. If they are an anonymous user, it will say that in the Accounts page. For such users, the Accounts page will also have a button that will let them link their Google account by signing into their Google account.

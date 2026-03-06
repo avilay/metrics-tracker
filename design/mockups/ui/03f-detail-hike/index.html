@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metrics Tracker - Hike</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet" type="text/css">
+  <link href="https://cdn.jsdelivr.net/npm/quasar@2.18.6/dist/quasar.prod.css" rel="stylesheet" type="text/css">
+  <style>
+    .chart-container { width: 100%; height: 250px; }
+  </style>
+</head>
+<body class="body--dark" style="background: #1d1d1d;">
+  <div id="q-app">
+    <q-layout view="hHh lpR fFf">
+      <q-header bordered class="bg-dark">
+        <q-toolbar>
+          <q-btn flat round dense icon="arrow_back"></q-btn>
+          <q-toolbar-title class="text-weight-bold">Hike</q-toolbar-title>
+        </q-toolbar>
+      </q-header>
+
+      <q-page-container>
+        <q-page class="q-pa-md" style="background: #1d1d1d;">
+          <!-- Time Range -->
+          <div class="q-mb-md">
+            <q-btn-group spread class="full-width">
+              <q-btn v-for="r in timeRanges" :key="r.value" :label="r.label"
+                :color="timeRange === r.value ? 'teal' : 'grey-8'"
+                :text-color="timeRange === r.value ? 'white' : 'grey-4'"
+                @click="timeRange = r.value" no-caps></q-btn>
+            </q-btn-group>
+          </div>
+
+          <!-- Filters -->
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col-6 col-sm-3">
+              <q-select v-model="filterLandscape" :options="landscapeOptions" label="Landscape" dark filled dense></q-select>
+            </div>
+            <div class="col-6 col-sm-3">
+              <q-input v-model.number="filterLoopMin" type="number" label="Min Loop (mi)" dark filled dense></q-input>
+            </div>
+            <div class="col-6 col-sm-3">
+              <q-input v-model.number="filterLoopMax" type="number" label="Max Loop (mi)" dark filled dense></q-input>
+            </div>
+            <div class="col-6 col-sm-3">
+              <q-input v-model.number="filterElevMin" type="number" label="Min Elev (ft)" dark filled dense></q-input>
+            </div>
+          </div>
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col-6 col-sm-3">
+              <q-input v-model.number="filterElevMax" type="number" label="Max Elev (ft)" dark filled dense></q-input>
+            </div>
+            <div class="col-6 col-sm-3">
+              <q-select v-model="aggregate" :options="['Average','Sum','Min','Max']" label="Aggregate" dark filled dense></q-select>
+            </div>
+            <div class="col-6 col-sm-3">
+              <q-select v-model="groupBy" :options="groupByOptions" label="Group By" dark filled dense></q-select>
+            </div>
+          </div>
+
+          <!-- Chart -->
+          <q-card class="bg-grey-10 q-mb-md" dark>
+            <q-card-section>
+              <div class="text-subtitle2 text-grey-4 q-mb-sm">{{ aggregate }} Duration (min) by {{ timeRangeLabel }}</div>
+              <div id="main-chart" class="chart-container"></div>
+            </q-card-section>
+          </q-card>
+
+          <!-- Data Table -->
+          <q-card class="bg-grey-10" dark>
+            <q-card-section>
+              <div class="text-subtitle2 text-grey-4 q-mb-sm">Data</div>
+              <q-table :rows="tableRows" :columns="tableColumns" row-key="period"
+                dark flat hide-bottom class="bg-grey-10" :rows-per-page-options="[0]"></q-table>
+            </q-card-section>
+          </q-card>
+        </q-page>
+      </q-page-container>
+
+      <q-page-sticky position="bottom-right" :offset="[24, 24]">
+        <q-btn fab color="teal" icon="add" @click="showLog = true"></q-btn>
+      </q-page-sticky>
+
+      <!-- Log Entry Modal -->
+      <q-dialog v-model="showLog" position="bottom">
+        <q-card class="bg-grey-10" dark style="width: 100%; max-width: 500px;">
+          <q-card-section>
+            <div class="text-h6 text-white q-mb-md">Log Hike</div>
+            <q-input v-model.number="logDuration" type="number" label="Duration" dark filled class="q-mb-sm" suffix="min"></q-input>
+            <q-input v-model.number="logLoopLength" type="number" label="Loop Length" dark filled class="q-mb-sm" suffix="miles"></q-input>
+            <q-input v-model.number="logElevGain" type="number" label="Elevation Gain" dark filled class="q-mb-sm" suffix="feet"></q-input>
+            <q-select v-model="logLandscape" :options="['Woods','Desert','Mountain','Coastal','Urban','Meadow']" label="Landscape" dark filled class="q-mb-md"></q-select>
+            <div class="row q-col-gutter-sm q-mb-md">
+              <div class="col-6">
+                <q-input v-model="logDate" label="Date" dark filled>
+                  <template v-slot:append>
+                    <q-icon name="event" class="cursor-pointer">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date v-model="logDate" dark color="teal" mask="YYYY-MM-DD"></q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-6">
+                <q-input v-model="logTime" label="Time" dark filled>
+                  <template v-slot:append>
+                    <q-icon name="access_time" class="cursor-pointer">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-time v-model="logTime" dark color="teal" mask="HH:mm"></q-time>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
+              </div>
+            </div>
+            <q-btn color="teal" icon="check_circle" label="Log Entry" class="full-width" @click="submit"></q-btn>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+    </q-layout>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quasar@2.18.6/dist/quasar.umd.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script>
+    const app = Vue.createApp({
+      setup() {
+        const now = new Date();
+        return {
+          showLog: Vue.ref(false),
+          logDuration: Vue.ref(null),
+          logLoopLength: Vue.ref(null),
+          logElevGain: Vue.ref(null),
+          logLandscape: Vue.ref(null),
+          logDate: Vue.ref(now.toISOString().slice(0, 10)),
+          logTime: Vue.ref(now.toTimeString().slice(0, 5)),
+          filterLandscape: Vue.ref('All'),
+          filterLoopMin: Vue.ref(null),
+          filterLoopMax: Vue.ref(null),
+          filterElevMin: Vue.ref(null),
+          filterElevMax: Vue.ref(null),
+          aggregate: Vue.ref('Average'),
+          groupBy: Vue.ref('None'),
+          landscapeOptions: ['All', 'Woods', 'Desert', 'Mountain', 'Coastal', 'Urban', 'Meadow'],
+          groupByOptions: ['None', 'Landscape', 'Loop Length', 'Elevation Gain'],
+          timeRange: Vue.ref('W'),
+          timeRanges: [
+            { label: 'D', value: 'D' }, { label: 'W', value: 'W' },
+            { label: 'M', value: 'M' }, { label: '6M', value: '6M' }, { label: 'Y', value: 'Y' },
+          ],
+          chart: null,
+        };
+      },
+      computed: {
+        timeRangeLabel() {
+          return { D: 'Hour', W: 'Day', M: 'Week', '6M': 'Month', Y: 'Month' }[this.timeRange] || 'Day';
+        },
+        chartData() {
+          const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+          if (this.groupBy === 'Landscape') {
+            return { labels, grouped: true, groupName: 'Landscape',
+              series: [
+                { name: 'Woods', color: '#66bb6a', data: [0, 0, 0, 0, 120, 0, 160] },
+                { name: 'Desert', color: '#ffa726', data: [0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Mountain', color: '#42a5f5', data: [0, 49, 0, 0, 100, 0, 0] },
+                { name: 'Coastal', color: '#ab47bc', data: [0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Urban', color: '#ef5350', data: [0, 0, 0, 0, 0, 0, 0] },
+                { name: 'Meadow', color: '#26a69a', data: [0, 0, 0, 0, 0, 0, 0] },
+              ]
+            };
+          } else if (this.groupBy === 'Loop Length') {
+            return { labels, grouped: true, groupName: 'Loop Length',
+              series: [
+                { name: '0-3 mi', color: '#66bb6a', data: [0, 49, 0, 0, 0, 0, 0] },
+                { name: '3-6 mi', color: '#ffa726', data: [0, 0, 0, 0, 0, 0, 160] },
+                { name: '6-10 mi', color: '#42a5f5', data: [0, 0, 0, 0, 220, 0, 0] },
+                { name: '10+ mi', color: '#ab47bc', data: [0, 0, 0, 0, 0, 0, 0] },
+              ]
+            };
+          } else if (this.groupBy === 'Elevation Gain') {
+            return { labels, grouped: true, groupName: 'Elevation Gain',
+              series: [
+                { name: '0-200 ft', color: '#66bb6a', data: [0, 49, 0, 0, 0, 0, 160] },
+                { name: '200-500 ft', color: '#ffa726', data: [0, 0, 0, 0, 0, 0, 0] },
+                { name: '500-1000 ft', color: '#42a5f5', data: [0, 0, 0, 0, 220, 0, 0] },
+                { name: '1000+ ft', color: '#ab47bc', data: [0, 0, 0, 0, 0, 0, 0] },
+              ]
+            };
+          }
+          return { labels, grouped: false, values: [0, 49, 0, 0, 220, 0, 160] };
+        },
+        tableColumns() {
+          const cols = [{ name: 'period', label: 'Period', field: 'period', align: 'left' }];
+          if (this.chartData.grouped) {
+            this.chartData.series.forEach(s => {
+              cols.push({ name: s.name, label: s.name, field: s.name, align: 'right' });
+            });
+          } else {
+            cols.push({ name: 'value', label: this.aggregate + ' (min)', field: 'value', align: 'right' });
+          }
+          return cols;
+        },
+        tableRows() {
+          const d = this.chartData;
+          return d.labels.map((l, i) => {
+            const row = { period: l };
+            if (d.grouped) {
+              d.series.forEach(s => { row[s.name] = s.data[i]; });
+            } else {
+              row.value = d.values[i];
+            }
+            return row;
+          });
+        },
+      },
+      watch: {
+        timeRange() { this.$nextTick(() => this.renderChart()); },
+        aggregate() { this.$nextTick(() => this.renderChart()); },
+        groupBy() { this.$nextTick(() => this.renderChart()); },
+        filterLandscape() { this.$nextTick(() => this.renderChart()); },
+      },
+      mounted() { setTimeout(() => this.renderChart(), 300); },
+      methods: {
+        renderChart() {
+          if (!this.chart) this.chart = echarts.init(document.getElementById('main-chart'));
+          const d = this.chartData;
+          let series, legend;
+          if (d.grouped) {
+            const activeSeries = d.series.filter(s => s.data.some(v => v > 0));
+            legend = { data: activeSeries.map(s => s.name), textStyle: { color: '#aaa', fontSize: 11 }, top: 0 };
+            series = activeSeries.map((s, i) => ({
+              name: s.name, type: 'bar', stack: 'hike', data: s.data,
+              itemStyle: { color: s.color, borderRadius: i === activeSeries.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0] },
+            }));
+          } else {
+            legend = undefined;
+            series = [{ type: 'bar', data: d.values, itemStyle: { color: '#42a5f5', borderRadius: [6, 6, 0, 0] }, barWidth: '50%' }];
+          }
+          this.chart.setOption({
+            backgroundColor: 'transparent',
+            grid: { top: d.grouped ? 30 : 20, right: 20, bottom: 30, left: 50 },
+            legend: legend,
+            xAxis: { type: 'category', data: d.labels, axisLabel: { color: '#aaa', fontSize: 11 }, axisLine: { lineStyle: { color: '#555' } } },
+            yAxis: { type: 'value', axisLabel: { color: '#aaa', fontSize: 11 }, splitLine: { lineStyle: { color: '#333' } } },
+            series: series,
+            tooltip: { trigger: 'axis', backgroundColor: '#333', borderColor: '#555', textStyle: { color: '#fff' } },
+          }, true);
+          this.chart.resize();
+        },
+        submit() {
+          this.showLog = false;
+          Quasar.Notify.create({ message: `Hike: ${this.logDuration} min logged!`, color: 'teal', position: 'top' });
+        },
+      }
+    });
+    app.use(Quasar, { config: { dark: true } });
+    app.mount('#q-app');
+  </script>
+</body>
+</html>

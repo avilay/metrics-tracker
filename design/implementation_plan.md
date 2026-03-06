@@ -2,7 +2,9 @@
 
 ## Context
 
-Build a mobile-friendly web app for tracking personal metrics over time, inspired by Apple Health. Uses NiceGUI (Python framework on Vue.js/Quasar/Tailwind/FastAPI) with SQLite storage. Multi-user with Firebase auth (anonymous + Google sign-in) since it will be hosted on the public internet. Anonymous users identified by long-lived browser session; users who want multi-device access sign in with Google. Design UX for all metric types holistically; implement one type at a time as vertical slices. Multi-metric overlay analysis is deferred.
+Build a mobile-friendly web app for tracking personal metrics over time, inspired by Apple Health. Uses NiceGUI (Python framework on Vue.js/Quasar/Tailwind/FastAPI) with SQLite storage. Multi-user with Firebase auth (anonymous + Google sign-in) since it will be hosted on the public internet. Anonymous users identified by long-lived browser session; users who want multi-device access sign in with Google.
+
+Metrics are defined with a unified model: a **value type** (numeric, categorical, or none) plus zero or more **properties** (each numeric or categorical). All combinations are valid. Implementation proceeds in capability slices rather than per-type phases.
 
 ---
 
@@ -15,77 +17,42 @@ metrics-tracker/
 │   ├── auth.py                    # Firebase auth middleware + token verification
 │   ├── database.py                # SQLite connection, schema DDL
 │   ├── models.py                  # Dataclasses: User, MetricDefinition, Entry
-│   ├── analytics.py               # Time bucketing + aggregation (numpy)
+│   ├── analytics.py               # load_metrics() + aggregation (pandas)
 │   ├── pages/
-│   │   ├── login.py               # @ui.page('/login') - Google sign-in option
+│   │   ├── login.py               # @ui.page('/login')
 │   │   ├── dashboard.py           # @ui.page('/')
 │   │   ├── add_metric.py          # @ui.page('/metric/new')
-│   │   ├── log_entry.py           # @ui.page('/log/{metric_id}')
-│   │   └── analyze.py             # @ui.page('/analyze/{metric_id}')
+│   │   └── metric_detail.py       # @ui.page('/metric/{metric_id}') - analyze + log
 │   ├── components/
-│   │   ├── layout.py              # Shared header/nav/drawer shell
+│   │   ├── layout.py              # Shared header/nav shell
 │   │   ├── metric_card.py         # Dashboard summary card with sparkline
-│   │   └── chart.py               # Reusable ECharts wrapper
+│   │   ├── chart.py               # Reusable ECharts wrapper
+│   │   ├── log_modal.py           # Dynamic log entry bottom-sheet modal
+│   │   └── filter_controls.py     # Filter/group-by/aggregate controls
 │   └── repositories/
 │       ├── user_repo.py           # User CRUD
 │       └── metric_repo.py         # Metric definitions + entries CRUD
 ├── design/
-│   └── mockups/
-│       ├── 01-dashboard/index.html
-│       ├── 02-add-metric/index.html
-│       ├── 03-log-entry/index.html
-│       └── 04-analyze/index.html
+│   └── mockups/ui/                # Completed mockups (Phase 1 done)
 └── metrics.db                     # SQLite file (gitignored)
 ```
 
 ---
 
-## Phase 1: UI Mockups
+## Phase 1: UI Mockups - DONE
 
-Pure HTML/CSS/JS using Quasar CDN + Tailwind CDN. Dark theme, mobile-first. Each in its own self-contained directory under `design/mockups/`. **Only use UI elements that map directly to NiceGUI components** (which wrap Quasar elements).
+Pure HTML/CSS/JS using Quasar CDN + Tailwind CDN. Dark theme, mobile-first. Each in its own self-contained directory under `design/mockups/ui/`. Only uses UI elements that map directly to NiceGUI components (which wrap Quasar elements).
 
-### Available NiceGUI elements to use in mockups:
-- Layout: `q-header`, `q-drawer`, `q-page`, `q-card`/`q-card-section`, `q-stepper`/`q-step`, `q-tabs`/`q-tab-panels`, `q-separator`, `q-page-sticky`
-- Inputs: `q-input`, `q-select`, `q-radio`, `q-toggle`, `q-checkbox`, `q-date`, `q-time`, `q-knob`
-- Buttons: `q-btn`, `q-btn-group`, `q-fab`, `q-chip`
-- Display: `q-table`, `q-badge`, `q-icon`, `q-spinner`, `q-dialog`, `q-tooltip`, `q-list`/`q-item`
-- Charts: Apache ECharts (via CDN — this maps to `ui.echart` in NiceGUI)
-- Grid: Quasar's `row`/`col` classes (maps to `ui.row`/`ui.column`/`ui.grid`)
+### Mockup inventory
 
-### 1a. Dashboard (`01-dashboard/`)
-- `q-header` with app title + user avatar/menu (shows "Sign in with Google" if anonymous)
-- `q-drawer` with nav links
-- 2-column grid (1-col on mobile) of metric summary cards (`q-card`)
-- Each card: metric name, latest value+unit, timestamp, mini ECharts sparkline bar chart, tap opens log entry
-- Mock one card per type: Weight (real), Meditate (binary), Mood (categorical), Blood Glucose (conditional properties)
-- `q-page-sticky` FAB "+" button for adding new metric
-
-### 1b. Add Metric Definition (`02-add-metric/`)
-- `q-stepper` with 3 steps:
-  - Step 1: Name (`q-input`) + type selector (`q-radio`: Binary / Real Valued / Categorical / With Properties)
-  - Step 2: Type-specific config (conditional panels):
-    - Binary: "No additional config needed" message
-    - Real Valued: unit `q-input`, default aggregate `q-select`
-    - Categorical: dynamic `q-chip` list for allowed values via `q-input` + add button
-    - With Properties: sub-type `q-radio` (Cross-Product vs Conditional), then property builder using `q-input` + `q-select` for each property's allowed values
-  - Step 3: Review summary + Save `q-btn`
-
-### 1c. Log Entry (`03-log-entry/`)
-- `q-dialog` (bottom-sheet position) overlaid on dashboard
-- `q-tabs` to switch between metric type demos:
-  - Binary: large "Log Now" `q-btn` with timestamp preview
-  - Real Valued: `q-input` (type=number) with unit suffix + `q-date`/`q-time` + submit
-  - Categorical: `q-radio` group of allowed values + `q-date`/`q-time` + submit
-  - Cross-Product: one `q-select` per property + optional number input + datetime + submit
-  - Conditional: primary `q-select`, dependent `q-select` appears/hides via v-if + value input + datetime + submit
-
-### 1d. Analyze (`04-analyze/`)
-- `q-select` at top to pick metric
-- `q-btn-group` time range toggles: D / W / M / 6M / Y
-- Filter row (for property metrics): `q-select` (multiple) per property
-- Group-by `q-select` + aggregate function `q-select`
-- ECharts bar chart (dark theme, teal bars, rounded tops — hardcoded data matching Apple Health style)
-- `q-table` below with mock aggregated data rows
+- `01-dashboard/` — 5 metric cards (Weight, Meditate, Mood, Blood Glucose, Hike)
+- `02-add-metric/` — Dynamic form: name, value type selector, unit/labels config, property builder
+- `03a-detail-meditate/` — Count chart, time range toggle, log modal (date/time only)
+- `03b-detail-weight/` — Bar chart, aggregate selector, numeric log modal
+- `03c-detail-mood/` — Stacked bars by category, radio group log modal
+- `03d-detail-food/` — Filter/group-by dropdowns, stacked bars, multi-select log modal
+- `03e-detail-glucose/` — Filter by Event/Delta, group-by with stacked bars, numeric log
+- `03f-detail-hike/` — Numeric filters (min/max), binned grouping, mixed-type log
 
 ---
 
@@ -94,16 +61,46 @@ Pure HTML/CSS/JS using Quasar CDN + Tailwind CDN. Dark theme, mobile-first. Each
 ### SQLite Schema (all tables created upfront)
 
 ```sql
-users (id, firebase_uid UNIQUE, display_name, email, is_anonymous BOOL, created_at)
-metric_definitions (id, user_id, name, metric_type, unit, config JSON, created_at)
-  -- metric_type IN ('binary','real_valued','categorical','cross_product','conditional')
-  -- config stores type-specific schema (allowed values, properties, etc.)
-entries (id, metric_id, user_id, recorded_at, value REAL nullable, created_at)
-entry_properties (id, entry_id, property_name, property_value)  -- EAV for property metrics
-entry_category (entry_id, value TEXT)  -- for categorical metrics
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    firebase_uid TEXT UNIQUE NOT NULL,
+    display_name TEXT,
+    email TEXT,
+    is_anonymous BOOLEAN NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    value_type TEXT NOT NULL CHECK (value_type IN ('numeric', 'categorical', 'none')),
+    unit TEXT,
+    definition_json TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    metric_id INTEGER NOT NULL,
+    recorded_at INTEGER NOT NULL,
+    value REAL,
+    label TEXT,
+    properties_json TEXT,
+    FOREIGN KEY (metric_id) REFERENCES metrics(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_logs_metric_id ON logs(metric_id);
+CREATE INDEX IF NOT EXISTS idx_logs_recorded_at ON logs(recorded_at);
 ```
 
-Key design: single polymorphic `entries` table avoids runtime DDL. The `config` JSON column in `metric_definitions` stores type-specific schema. EAV `entry_properties` handles any property combination. Aggregation done in Python with numpy (acceptable at personal-tracker scale).
+Key design decisions:
+- **`metrics.definition_json`**: Stores the full metric schema — allowed labels (for categorical value_type), properties array. Each property has: `{ name, value_type ('numeric'|'categorical'), unit, categories }`.
+- **`logs.properties_json`**: Stores all property values as a JSON object (e.g., `{"event": "breakfast", "delta": "one-hour-after"}`). This avoids an EAV table — properties are unpacked into DataFrame columns at query time.
+- **`logs.value`**: Populated when metric `value_type = 'numeric'`.
+- **`logs.label`**: Populated when metric `value_type = 'categorical'`.
+- **`logs.recorded_at`**: Unix timestamp (seconds). Converted to timezone-aware datetime in pandas.
+- Aggregation done in Python with pandas (acceptable at personal-tracker scale).
 
 ### Auth: Firebase Anonymous + Google Sign-In
 
@@ -130,36 +127,97 @@ Key design: single polymorphic `entries` table avoids runtime DDL. The `config` 
 
 ---
 
-## Phase 3: Real Valued Metrics (first vertical slice)
+## Phase 3: Simple Metrics (no properties)
 
-- Add Metric page: name + unit + default aggregate
-- Log Entry dialog: `ui.number` + `ui.date`/`ui.time` inputs
-- Dashboard card: latest value + unit + mini `ui.echart` sparkline
-- Analyze page: time range `ui.button_group`, aggregate `ui.select`, `ui.echart` bar chart + `ui.table`
-- `analytics.py`: `bucket_by_period()` and `aggregate_real_valued()` using numpy
+Covers: Meditate (none), Weight (numeric), Mood (categorical)
 
-## Phase 4: Binary Metrics
-- Log: just a "Log Now" button (timestamp only)
-- Card: "3x this week" count display
-- Analyze: count-only aggregate
+- **Add Metric page**: name + value type selector + unit (for numeric) / allowed labels (for categorical)
+- **Dashboard card**: renders based on value_type — count for none, latest value+unit for numeric, latest label for categorical; all with mini `ui.echart` sparkline
+- **Detail page**: time range `ui.button_group` (D/W/M/6M/Y), aggregate selector (for numeric: sum/avg/median), ECharts bar chart, data table, log modal
+- **Log modal**: bottom-sheet dialog with date/time; "Log Now" button for none, `ui.number` + unit for numeric, `ui.radio` group for categorical
 
-## Phase 5: Categorical Metrics
-- Add Metric: dynamic chip list for allowed values
-- Log: radio group of allowed values
-- Card: latest value display
-- Analyze: grouped/stacked bars per category value
+### Analytics (`analytics.py`)
 
-## Phase 6: Cross-Product Property Metrics
-- Add Metric: property builder (name + allowed values per property)
-- Log: one dropdown per property + optional value input
-- Analyze: filter by property values, group by any property
+Core function: `load_metrics(user_id, metric_name, tz) -> pd.DataFrame`
+- Queries `metrics` table for `definition_json`, then `logs` table for entries
+- Converts `recorded_at` (unix timestamps) to timezone-aware datetimes via `pd.Series(..., dtype=f"datetime64[s, {tz}]")`
+- Adds `value` column as `float64` for numeric, or as `CategoricalDtype` for categorical
+- Returns a DataFrame indexed by log id with `recorded_at` + value column(s)
 
-## Phase 7: Conditional Property Metrics
-- Add Metric: conditional property builder (parent property + visibility rules)
-- Log: reactive form—dependent properties show/hide based on primary value
-- Analyze: dynamic filter UI adjusts based on primary property selection
+Aggregation patterns:
+- **None (Meditate)**: `df.resample("W", on="recorded_at").size()` — returns a Series of counts per period
+- **Numeric (Weight)**: `df.resample("W", on="recorded_at").mean()` (or `.median()`, `.sum()`) — returns a DataFrame with aggregated `value` column
+- **Categorical (Mood)**: `df.groupby([pd.Grouper(key="recorded_at", freq="W"), "value"]).size()` — returns a Series with MultiIndex (period, category) for stacked bar charts; `.unstack(fill_value=0)` to pivot for charting
 
-## Phase 8: Polish
+---
+
+## Phase 4: Metrics with Categorical Properties
+
+Covers: Food/Meal (none + categorical props), Blood Glucose (numeric + categorical props)
+
+- **Add Metric page**: property builder — add/remove properties, each with name + allowed categories
+- **Detail page**: filter `ui.select` (multiple) per categorical property, group-by `ui.select`, stacked bar charts
+- **Log modal**: adds `ui.select` per categorical property
+
+### Analytics
+
+`load_metrics()` extended: unpacks `properties_json` into DataFrame columns. Each categorical property becomes a column with `CategoricalDtype(categories=prop["categories"])`.
+
+Filtering: standard pandas boolean indexing on property columns:
+```python
+# Filter: source == "home-cooked" & taste == "delicious"
+filtered = df[(df["source"] == "home-cooked") & (df["taste"] == "delicious")]
+```
+
+Grouping by categorical property:
+```python
+# Group by "healthy" property within time periods
+filtered.groupby([pd.Grouper(key="recorded_at", freq="W"), "healthy"]).size()
+```
+
+For numeric-valued metrics with categorical properties (Blood Glucose):
+```python
+# Average glucose grouped by delta, filtered to breakfast events
+glucose.loc[glucose["event"] == "breakfast", ["recorded_at", "value", "delta"]].groupby(
+    [pd.Grouper(key="recorded_at", freq="W"), "delta"]
+).mean()
+```
+
+---
+
+## Phase 5: Metrics with Numeric Properties
+
+Covers: Hike (numeric value + mixed numeric/categorical props)
+
+- **Add Metric page**: property builder supports numeric properties (name + unit input)
+- **Detail page**: min/max `ui.number` filter inputs for numeric properties, auto-binned grouping
+- **Log modal**: adds `ui.number` inputs for numeric properties
+
+### Analytics
+
+`load_metrics()` extended: numeric properties unpacked as `float64` columns.
+
+Filtering numeric properties: standard comparison operators:
+```python
+# Hikes between 2 and 10 miles
+filtered = df[(df["loop_length"] >= 2) & (df["loop_length"] <= 10)]
+```
+
+Binning numeric properties for group-by using `pd.cut()`:
+```python
+# Bin elevation_gain into low/medium/high
+df["elevation_gain_bin"] = pd.cut(df["elevation_gain"], bins=3, labels=["low", "medium", "high"])
+
+# Then group and aggregate
+df[["recorded_at", "value", "elevation_gain_bin"]].groupby(
+    [pd.Grouper(key="recorded_at", freq="W"), "elevation_gain_bin"]
+).mean()
+```
+
+---
+
+## Phase 6: Polish
+
 - Input validation, error handling, 404 page
 - Mobile optimization (test at 375px)
 - Security: `storage_secret` from env var, Firebase config from env vars
@@ -169,7 +227,9 @@ Key design: single polymorphic `entries` table avoids runtime DDL. The `config` 
 
 ## Verification
 
-- **Mockups**: Open each `index.html` in a browser, verify responsiveness at 375px and 1440px
+- **Mockups**: Open each `design/mockups/ui/*/index.html` in a browser, verify responsiveness at 375px and 1440px
 - **Auth**: Visit as anonymous → verify auto-sign-in → upgrade to Google → verify data persists
-- **Each metric type**: Define metric → log 5+ entries → view on dashboard → analyze with different time ranges and aggregates
+- **Phase 3**: Define each simple metric type (none/numeric/categorical) → log 5+ entries → view on dashboard → analyze with different time ranges and aggregates
+- **Phase 4**: Define metrics with categorical properties → log entries with property values → filter and group-by on detail page
+- **Phase 5**: Define metric with numeric properties → log entries → filter by numeric range → verify binned grouping
 - **Mobile**: Test all flows on a phone-width browser window

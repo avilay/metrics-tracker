@@ -6,5 +6,18 @@ dist/
 wheels/
 *.egg-info
 
+# sqlite
+*.db
+
 # Virtual environments
 .venv
+
+# Project
+.env
+.envrc
+
+# NiceGUI
+.nicegui/
+
+# Cached profile photos
+.photo_cache/

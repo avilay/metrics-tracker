@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metrics Tracker - Add New Metric</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet" type="text/css">
+  <link href="https://cdn.jsdelivr.net/npm/quasar@2.18.6/dist/quasar.prod.css" rel="stylesheet" type="text/css">
+</head>
+<body class="body--dark" style="background: #1d1d1d;">
+  <div id="q-app">
+    <q-layout view="hHh lpR fFf">
+      <q-header bordered class="bg-dark">
+        <q-toolbar>
+          <q-btn flat round dense icon="arrow_back"></q-btn>
+          <q-toolbar-title class="text-weight-bold">Add New Metric</q-toolbar-title>
+        </q-toolbar>
+      </q-header>
+
+      <q-page-container>
+        <q-page class="q-pa-md" style="background: #1d1d1d;">
+          <!-- Metric Name -->
+          <q-input v-model="metricName" label="Metric Name" dark filled class="q-mb-md"></q-input>
+
+          <!-- Value Type -->
+          <q-select v-model="valueType" :options="valueTypeOptions" label="Value Type" dark filled class="q-mb-md"></q-select>
+
+          <!-- Unit (shown only for Numeric) -->
+          <q-input v-if="valueType === 'Numeric'" v-model="unit" label="Unit" dark filled class="q-mb-md"></q-input>
+
+          <!-- Allowed Labels (shown only for Labeled) -->
+          <div v-if="valueType === 'Labeled'" class="q-mb-md">
+            <div class="text-subtitle2 text-grey-4 q-mb-sm">Allowed Labels</div>
+            <div class="row q-col-gutter-sm q-mb-sm">
+              <div class="col">
+                <q-input v-model="newLabel" label="Add a label" dark filled dense @keyup.enter="addLabel"></q-input>
+              </div>
+              <div class="col-auto">
+                <q-btn color="teal" icon="add" dense @click="addLabel" :disable="!newLabel"></q-btn>
+              </div>
+            </div>
+            <div class="q-gutter-sm">
+              <q-chip v-for="(label, i) in allowedLabels" :key="i" removable @remove="allowedLabels.splice(i, 1)"
+                color="teal" text-color="white" dark>{{ label }}</q-chip>
+            </div>
+          </div>
+
+          <!-- Properties Section -->
+          <q-separator dark class="q-my-md"></q-separator>
+          <div class="text-subtitle1 text-grey-4 q-mb-md">Properties</div>
+
+          <q-card v-for="(prop, pi) in properties" :key="pi" class="bg-grey-10 q-mb-md" dark>
+            <q-card-section>
+              <div class="row items-center q-mb-sm">
+                <div class="col text-subtitle2 text-grey-4">Property {{ pi + 1 }}</div>
+                <div class="col-auto">
+                  <q-btn flat round dense icon="delete" color="red-4" @click="properties.splice(pi, 1)"></q-btn>
+                </div>
+              </div>
+              <q-input v-model="prop.name" label="Property Name" dark filled dense class="q-mb-sm"></q-input>
+              <q-select v-model="prop.valueType" :options="['Numeric','Labeled']" label="Value Type" dark filled dense class="q-mb-sm"></q-select>
+              <q-input v-if="prop.valueType === 'Numeric'" v-model="prop.unit" label="Unit" dark filled dense></q-input>
+              <div v-if="prop.valueType === 'Labeled'">
+                <div class="row q-col-gutter-sm q-mb-sm">
+                  <div class="col">
+                    <q-input v-model="prop.newLabel" label="Add a label" dark filled dense @keyup.enter="addPropLabel(pi)"></q-input>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn color="teal" icon="add" dense @click="addPropLabel(pi)" :disable="!prop.newLabel"></q-btn>
+                  </div>
+                </div>
+                <div class="q-gutter-sm">
+                  <q-chip v-for="(label, li) in prop.allowedLabels" :key="li" removable @remove="prop.allowedLabels.splice(li, 1)"
+                    color="teal" text-color="white" dark>{{ label }}</q-chip>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <q-btn outline color="teal" icon="add" label="Add Property" class="full-width q-mb-lg" @click="addProperty"></q-btn>
+
+          <!-- Submit -->
+          <q-btn color="teal" icon="check_circle" label="Create Metric" class="full-width" size="lg" @click="submit"></q-btn>
+        </q-page>
+      </q-page-container>
+    </q-layout>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quasar@2.18.6/dist/quasar.umd.prod.js"></script>
+  <script>
+    const app = Vue.createApp({
+      setup() {
+        return {
+          metricName: Vue.ref(''),
+          valueType: Vue.ref(null),
+          valueTypeOptions: ['Numeric', 'Labeled', 'None'],
+          unit: Vue.ref(''),
+          allowedLabels: Vue.ref([]),
+          newLabel: Vue.ref(''),
+          properties: Vue.ref([]),
+        };
+      },
+      methods: {
+        addLabel() {
+          if (this.newLabel.trim()) {
+            this.allowedLabels.push(this.newLabel.trim());
+            this.newLabel = '';
+          }
+        },
+        addPropLabel(pi) {
+          const prop = this.properties[pi];
+          if (prop.newLabel && prop.newLabel.trim()) {
+            prop.allowedLabels.push(prop.newLabel.trim());
+            prop.newLabel = '';
+          }
+        },
+        addProperty() {
+          this.properties.push({ name: '', valueType: null, unit: '', allowedLabels: [], newLabel: '' });
+        },
+        submit() {
+          Quasar.Notify.create({ message: `Metric "${this.metricName}" created!`, color: 'teal', position: 'top' });
+        },
+      }
+    });
+    app.use(Quasar, { config: { dark: true } });
+    app.mount('#q-app');
+  </script>
+</body>
+</html>
