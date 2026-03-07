@@ -46,5 +46,3 @@ def verify_and_upsert_user(id_token: str, client_photo_url: str | None = None) -
         )
     finally:
         conn.close()
-        conn.close()
-        conn.close()
