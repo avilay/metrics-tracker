@@ -1,27 +1,39 @@
 import json
 import sqlite3
 
-from app.models import LogEntry, MetricDefinition
+from metrics_tracker.models import LogEntry, MetricDefinition
 
 
-def create_metric(conn: sqlite3.Connection, metric: MetricDefinition) -> MetricDefinition:
+def create_metric(
+    conn: sqlite3.Connection, metric: MetricDefinition
+) -> MetricDefinition:
     cursor = conn.execute(
         "INSERT INTO metrics (user_id, name, value_type, unit, definition_json) VALUES (?, ?, ?, ?, ?)",
-        (metric.user_id, metric.name, metric.value_type, metric.unit, metric.to_definition_json()),
+        (
+            metric.user_id,
+            metric.name,
+            metric.value_type,
+            metric.unit,
+            metric.to_definition_json(),
+        ),
     )
     conn.commit()
     metric.id = cursor.lastrowid
     return metric
 
 
-def get_metrics_for_user(conn: sqlite3.Connection, user_id: int) -> list[MetricDefinition]:
+def get_metrics_for_user(
+    conn: sqlite3.Connection, user_id: int
+) -> list[MetricDefinition]:
     rows = conn.execute(
         "SELECT * FROM metrics WHERE user_id = ? ORDER BY name", (user_id,)
     ).fetchall()
     return [MetricDefinition.from_row(dict(r)) for r in rows]
 
 
-def get_metric_by_id(conn: sqlite3.Connection, metric_id: int) -> MetricDefinition | None:
+def get_metric_by_id(
+    conn: sqlite3.Connection, metric_id: int
+) -> MetricDefinition | None:
     row = conn.execute("SELECT * FROM metrics WHERE id = ?", (metric_id,)).fetchone()
     if not row:
         return None

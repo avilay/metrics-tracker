@@ -1,7 +1,7 @@
 import sqlite3
 import time
 
-from app.models import User
+from metrics_tracker.models import User
 
 
 def upsert_user(
@@ -53,7 +53,6 @@ def upsert_user(
 def get_user_by_firebase_uid(
     conn: sqlite3.Connection, firebase_uid: str
 ) -> User | None:
-    print(f"Fetching user {firebase_uid}")
     row = conn.execute(
         "SELECT * FROM users WHERE firebase_uid = ?", (firebase_uid,)
     ).fetchone()

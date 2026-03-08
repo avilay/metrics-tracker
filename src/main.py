@@ -5,12 +5,19 @@ from pathlib import Path
 import httpx
 from fastapi import Request
 from fastapi.responses import FileResponse, JSONResponse
-from nicegui import app as nicegui_app
-from nicegui import ui
+from nicegui import app, ui
 
-from app.components.layout import page_layout
-from app.pages import account_page, dashboard_page, login_page, new_metric_page
-import app.pages.welcome  # noqa: F401 — registers /welcome route
+# import metrics_tracker.pages.account  # noqa: F401
+# import metrics_tracker.pages.dashboard  # noqa: F401
+# import metrics_tracker.pages.new_metric  # noqa: F401
+import metrics_tracker.pages.welcome  # noqa: F401 — registers /welcome route
+from metrics_tracker.components.layout import page_layout
+from metrics_tracker.pages import (
+    account_page,
+    dashboard_page,
+    dummy_page,
+    new_metric_page,
+)
 
 PHOTO_CACHE_DIR = Path(__file__).parent / ".photo_cache"
 
@@ -20,20 +27,20 @@ def setup_auth_endpoints() -> None:
 
     PHOTO_CACHE_DIR.mkdir(exist_ok=True)
 
-    @nicegui_app.get("/auth/photo/{filename}")
+    @app.get("/auth/photo/{filename}")
     async def get_photo(filename: str):
         path = PHOTO_CACHE_DIR / filename
         if path.exists():
             return FileResponse(path, media_type="image/jpeg")
         return JSONResponse({"error": "not found"}, status_code=404)
 
-    @nicegui_app.post("/auth/sign-out")
+    @app.post("/auth/sign-out")
     async def sign_out(request: Request) -> JSONResponse:
-        storage = nicegui_app.storage.user
+        storage = app.storage.user
         storage.clear()
         return JSONResponse({"status": "ok"})
 
-    @nicegui_app.post("/auth/firebase-token")
+    @app.post("/auth/firebase-token")
     async def firebase_token(request: Request) -> JSONResponse:
         try:
             body = await request.json()
@@ -41,7 +48,7 @@ def setup_auth_endpoints() -> None:
             if not id_token:
                 return JSONResponse({"error": "missing token"}, status_code=400)
 
-            from app.auth import verify_and_upsert_user
+            from metrics_tracker.auth import verify_and_upsert_user
 
             # photo_url comes from client JS (user.photoURL) since it's
             # not always present in the ID token claims
@@ -66,13 +73,14 @@ def setup_auth_endpoints() -> None:
                     pass
 
             # Store user info in NiceGUI's per-browser storage
-            storage = nicegui_app.storage.user
+            storage = app.storage.user
             storage["user_id"] = user.id
             storage["firebase_uid"] = user.firebase_uid
             storage["is_anonymous"] = user.is_anonymous
             storage["display_name"] = user.display_name
             storage["photo_url"] = local_photo_url
             storage["is_demo"] = False
+            storage["email"] = user.email
 
             return JSONResponse({"status": "ok", "user_id": user.id})
         except Exception as e:
@@ -80,37 +88,72 @@ def setup_auth_endpoints() -> None:
 
 
 def root():
-    if not nicegui_app.storage.user.get("user_id"):
+    if not app.storage.user.get("user_id"):
         ui.navigate.to("/welcome")
         return
-    page_layout("Metrics Tracker")
+
+    app.add_static_files("/static", Path("./static"))
+    ui.add_css(
+        """
+        @font-face {
+            src: url("/static/NotoSans-VariableFont_wdth,wght.ttf");
+            font-family: "Noto Sans";
+        }
+
+        @font-face {
+            src: url("/static/NotoSans-Italic-VariableFont_wdth,wght.ttf");
+            font-family: "Noto Sans Italic"
+        }
+
+        body {
+            font-family: "Noto Sans", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 400;
+            font-style: normal;
+            font-size: 1rem;
+        }
+
+        blockquote {
+            font-family: "Noto Sans Italic", sans-serif;
+            font-weight: 500;
+            color: gray;
+        }
+
+        .q-field {
+            font-size: 1rem;
+        }
+
+        .nicegui-content {align-items: flex-start;}
+    """,
+        shared=True,
+    )
+
+    with page_layout():
+        title = ui.label().classes("text-h6 text-white")
+
     ui.sub_pages(
         {
             "/": dashboard_page,
             "/account": account_page,
             "/metric/new": new_metric_page,
-            "/login": login_page,
-        }
+            "/dummy": dummy_page,
+        },
+        data={"title": title},
     )
 
 
-def main() -> None:
-    firebase_api_key = os.environ.get("FIREBASE_API_KEY")
-    if firebase_api_key:
-        from app.auth import init_firebase
+firebase_api_key = os.environ.get("FIREBASE_API_KEY")
+if firebase_api_key:
+    from metrics_tracker.auth import init_firebase
 
-        init_firebase()
-        setup_auth_endpoints()
+    init_firebase()
+    setup_auth_endpoints()
 
-    storage_secret = os.environ.get("STORAGE_SECRET", "dev-secret-change-in-production")
-    ui.run(
-        root,
-        title="Metrics Tracker",
-        storage_secret=storage_secret,
-        dark=None,
-        show=False,
-    )
-
-
-if __name__ in ("__main__", "__mp_main__"):
-    main()
+storage_secret = os.environ.get("STORAGE_SECRET", "dev-secret-change-in-production")
+ui.run(
+    root,
+    title="Metrics Tracker",
+    storage_secret=storage_secret,
+    dark=None,
+    show=False,
+)

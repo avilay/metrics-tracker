@@ -4,9 +4,9 @@ import firebase_admin
 from firebase_admin import auth as firebase_auth
 from firebase_admin import credentials
 
-from app.models import User
-from app.repositories import get_connection
-from app.repositories.user_repo import upsert_user
+from metrics_tracker.models import User
+from metrics_tracker.repositories import get_connection
+from metrics_tracker.repositories.user_repo import upsert_user
 
 _firebase_app = None
 

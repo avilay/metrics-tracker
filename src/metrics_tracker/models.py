@@ -94,3 +94,4 @@ class User:
     photo_url: str | None = None
     is_anonymous: bool = True
     created_at: int = 0
+    created_at: int = 0

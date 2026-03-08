@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 
 from nicegui import app, ui
 
@@ -32,6 +33,7 @@ async function exchangeToken(user, forceRefresh, photoUrlOverride) {{
         }}),
     }});
     if (!resp.ok) console.error("Token exchange failed:", resp.status);
+    return resp;
 }}
 
 async function anonymousSignIn() {{
@@ -40,7 +42,10 @@ async function anonymousSignIn() {{
         return;
     }}
     try {{
-        await firebaseAuth.signInAnonymously();
+        resp = await firebaseAuth.signInAnonymously();
+        if (resp && resp.ok && window.location.pathname === '/welcome') {{
+            window.location.href = '/';
+        }}
     }} catch (e) {{
         console.error("Anonymous sign-in failed:", e);
     }}
@@ -50,8 +55,8 @@ if (firebaseAuth) {{
     firebaseAuth.onAuthStateChanged(async (user) => {{
         if (signingOut) return;
         if (user) {{
-            await exchangeToken(user);
-            if (window.location.pathname === '/welcome') {{
+            resp = await exchangeToken(user);
+            if (resp && resp.ok && window.location.pathname === '/welcome') {{
                 window.location.href = '/';
             }}
         }}
@@ -137,24 +142,33 @@ def _get_auth_snapshot() -> tuple:
     )
 
 
-def page_layout(title: str = "Metrics Tracker"):
+@contextmanager
+def page_layout():
     """Shared page layout with header and navigation drawer."""
     add_firebase_head_html()
 
-    with ui.header().classes("bg-dark p-1"):
+    with ui.header().classes("p-1"):
         with ui.row().classes("w-full items-center"):
             with ui.button(icon="menu").props("flat round color=white"):
                 with ui.menu().classes("shadow-sm"):
                     with ui.menu_item(on_click=lambda: ui.navigate.to("/")):
-                        with ui.row():
-                            ui.icon("dashboard", color="white")
-                            ui.label("Dashboard").classes("text-white")
+                        with ui.item_section().props("side"):
+                            ui.icon("dashboard")
+                        with ui.item_section():
+                            ui.label("Dashboard")
                     with ui.menu_item(on_click=lambda: ui.navigate.to("/metric/new")):
-                        with ui.row():
-                            ui.icon("add_circle", color="white")
-                            ui.label("Add Metric").classes("text-white")
+                        with ui.item_section().props("side"):
+                            ui.icon("add_circle")
+                        with ui.item_section():
+                            ui.label("New Metric")
+                    with ui.menu_item(on_click=lambda: ui.navigate.to("/dummy")):
+                        with ui.item_section().props("side"):
+                            ui.icon("psychology")
+                        with ui.item_section():
+                            ui.label("Dummy")
 
-            ui.label(title).classes("text-h6 text-white")
+            # ui.label("TODO").classes("text-h6 text-white")
+            yield
             ui.space()
             auth_container = ui.row().classes("items-center")
             with auth_container:
@@ -203,7 +217,7 @@ def _render_auth_controls():
             )
 
     with avatar_btn:
-        with ui.menu().classes("shadow-sm"):
+        with ui.menu().classes("shadow-sm !max-w-none"):
             with ui.menu_item(on_click=lambda: ui.navigate.to("/account")):
                 with ui.item_section().props("side"):
                     ui.icon("person")

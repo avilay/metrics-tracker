@@ -1,7 +1,16 @@
 from nicegui import app, ui
 
+# from metrics_tracker.components.layout import page_layout
 
-def account_page():
+
+# @ui.page("/account")
+def account_page(title):
+    # if not app.storage.user.get("user_id"):
+    #     ui.navigate.to("/welcome")
+    #     return
+
+    # page_layout("Account")
+    title.text = "Account"
     user_data = app.storage.user
     display_name = user_data.get("display_name", "Anonymous")
     email = user_data.get("email", "")
@@ -14,6 +23,6 @@ def account_page():
         else:
             ui.icon("account_circle", size="80px", color="grey")
 
-        ui.label(display_name).classes("text-h5 text-white q-mt-md")
+        ui.label(display_name).classes("text-h5 q-mt-md")
         if email:
-            ui.label(email).classes("text-subtitle1 text-grey")
+            ui.label(email).classes("text-subtitle1")
