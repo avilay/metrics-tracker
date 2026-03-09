@@ -7,9 +7,6 @@ from fastapi import Request
 from fastapi.responses import FileResponse, JSONResponse
 from nicegui import app, ui
 
-# import metrics_tracker.pages.account  # noqa: F401
-# import metrics_tracker.pages.dashboard  # noqa: F401
-# import metrics_tracker.pages.new_metric  # noqa: F401
 import metrics_tracker.pages.welcome  # noqa: F401 — registers /welcome route
 from metrics_tracker.components.layout import page_layout
 from metrics_tracker.pages import (
@@ -122,8 +119,6 @@ def root():
         .q-field {
             font-size: 1rem;
         }
-
-        .nicegui-content {align-items: flex-start;}
     """,
         shared=True,
     )

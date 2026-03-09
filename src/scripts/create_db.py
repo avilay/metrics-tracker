@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS metrics (
     value_type TEXT NOT NULL CHECK (value_type IN ('numeric', 'categorical', 'none')),
     unit TEXT,
     definition_json TEXT NOT NULL,
+    color TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 

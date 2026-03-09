@@ -1,16 +1,9 @@
 from nicegui import app, ui
 
-# from metrics_tracker.components.layout import page_layout
 
-
-# @ui.page("/account")
 def account_page(title):
-    # if not app.storage.user.get("user_id"):
-    #     ui.navigate.to("/welcome")
-    #     return
-
-    # page_layout("Account")
     title.text = "Account"
+    ui.add_css(".nicegui-content {align-items: stretch;}")
     user_data = app.storage.user
     display_name = user_data.get("display_name", "Anonymous")
     email = user_data.get("email", "")

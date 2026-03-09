@@ -4,8 +4,10 @@ import sqlite3 as sql
 import pandas as pd
 
 
-def load_metrics(user_id: int, metric_name: str, tz: str) -> pd.DataFrame:
-    conn = sql.connect("./metrics-tracker.db")
+def load_metrics(
+    conn: sql.Connection, user_id: int, metric_name: str, tz: str
+) -> pd.DataFrame:
+    # conn = sql.connect("./metrics-tracker.db")
     conn.row_factory = sql.Row
 
     query = "SELECT id, name, definition_json FROM metrics WHERE user_id = :user_id AND name = :metric_name"
@@ -66,5 +68,4 @@ def load_metrics(user_id: int, metric_name: str, tz: str) -> pd.DataFrame:
         elif prop["value_type"] == "boolean":
             metric[propname] = pd.Series(propvals, dtype="boolean", index=metric.index)
 
-    conn.close()
     return metric

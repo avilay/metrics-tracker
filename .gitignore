@@ -21,3 +21,8 @@ wheels/
 
 # Cached profile photos
 .photo_cache/
+
+# IDE
+.idea/
+.vscode/
+.ipynb_checkpoints/

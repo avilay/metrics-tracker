@@ -3,22 +3,33 @@ from nicegui import app, ui
 from metrics_tracker.models import MetricDefinition
 from metrics_tracker.repositories import get_connection
 from metrics_tracker.repositories.metric_repo import create_metric
+import random
 
-# from metrics_tracker.components.layout import page_layout
+COLORS = [
+    "red",
+    "pink",
+    "purple",
+    "indigo",
+    "blue",
+    "light-blue",
+    "cyan",
+    "teal",
+    "green",
+    "light-green",
+    "lime",
+    "yellow",
+    "amber",
+    "orange",
+    "deep-orange",
+]
+
 
 VALUE_TYPE_OPTIONS = ["Numeric", "Categorical", "None"]
 
 
-# @ui.page("/metric/new")
 def new_metric_page(title):
-    # if not app.storage.user.get("user_id"):
-    #     ui.navigate.to("/welcome")
-    #     return
-
-    # page_layout("New Metric")
     title.text = "New Metric"
     ui.add_css(".nicegui-content {align-items: stretch;}")
-    # categories: list[str] = []
 
     with ui.column().classes("w-full items-stretch"):
         ui.label("New Metric").classes("text-h5 q-mb-md")
@@ -88,6 +99,7 @@ def new_metric_page(title):
                 user_id=user_id,
                 name=name,
                 value_type=vtype,
+                color=random.choice(COLORS),
                 unit=unit or None,
                 categories=categories,
                 properties=[],

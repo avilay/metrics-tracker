@@ -166,8 +166,6 @@ def page_layout():
                             ui.icon("psychology")
                         with ui.item_section():
                             ui.label("Dummy")
-
-            # ui.label("TODO").classes("text-h6 text-white")
             yield
             ui.space()
             auth_container = ui.row().classes("items-center")
