@@ -4,8 +4,8 @@ from nicegui import app, ui
 
 from metrics_tracker.components.layout import add_firebase_head_html
 from metrics_tracker.errors import DemoUserNotFound
-from metrics_tracker.repositories import get_connection
 from metrics_tracker.repositories.user_repo import get_user_by_firebase_uid
+from metrics_tracker.utils import get_connection
 
 
 @ui.page("/welcome")

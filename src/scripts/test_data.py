@@ -4,6 +4,8 @@ import random
 import sqlite3 as sql
 from datetime import datetime, timedelta
 
+from metrics_tracker.utils import COLORS
+
 INSERT_TEST_USER = """INSERT INTO users
 (firebase_uid, display_name, email, created_at)
 VALUES (?, ?, ?, ?)"""
@@ -20,23 +22,6 @@ VALUES (?, ?, ?, ?, ?)
 
 SELECT_ID = "SELECT id FROM metrics WHERE rowid = ?"
 
-COLORS = [
-    "red",
-    "pink",
-    "purple",
-    "indigo",
-    "blue",
-    "light-blue",
-    "cyan",
-    "teal",
-    "green",
-    "light-green",
-    "lime",
-    "yellow",
-    "amber",
-    "orange",
-    "deep-orange",
-]
 
 START_DAY = datetime(
     year=datetime.now().year, month=datetime.now().month, day=datetime.now().day
@@ -210,4 +195,6 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
+    main()
     main()

@@ -14,7 +14,7 @@ def account_page(title):
             with ui.element("q-avatar").props("size=80px"):
                 ui.image(photo_url)
         else:
-            ui.icon("account_circle", size="80px", color="grey")
+            ui.icon("account_circle", size="80px").classes("color-6")
 
         ui.label(display_name).classes("text-h5 q-mt-md")
         if email:

@@ -1,28 +1,10 @@
+import random
+
 from nicegui import app, ui
 
 from metrics_tracker.models import MetricDefinition
-from metrics_tracker.repositories import get_connection
 from metrics_tracker.repositories.metric_repo import create_metric
-import random
-
-COLORS = [
-    "red",
-    "pink",
-    "purple",
-    "indigo",
-    "blue",
-    "light-blue",
-    "cyan",
-    "teal",
-    "green",
-    "light-green",
-    "lime",
-    "yellow",
-    "amber",
-    "orange",
-    "deep-orange",
-]
-
+from metrics_tracker.utils import COLORS, get_connection
 
 VALUE_TYPE_OPTIONS = ["Numeric", "Categorical", "None"]
 
@@ -32,7 +14,6 @@ def new_metric_page(title):
     ui.add_css(".nicegui-content {align-items: stretch;}")
 
     with ui.column().classes("w-full items-stretch"):
-        ui.label("New Metric").classes("text-h5 q-mb-md")
         name_input = ui.input(label="Metric Name").props("filled q-mb-md")
 
         value_type_select = (
@@ -56,11 +37,14 @@ def new_metric_page(title):
         categories_input = ui.input_chips(
             "Allowed Categories", new_value_mode="add-unique"
         )
+        categories_input.bind_visibility_from(
+            value_type_select, "value", backward=lambda v: v == "Categorical"
+        )
 
         # Properties placeholder
         ui.separator().classes("q-my-md")
-        ui.label("Properties").classes("text-h6 text-white q-mb-sm")
-        ui.label("Coming soon").classes("text-grey")
+        ui.label("Properties").classes("text-h6 q-mb-sm")
+        ui.label("Coming soon").classes("color-6")
 
         def handle_create():
             # Validate

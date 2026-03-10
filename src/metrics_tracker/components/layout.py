@@ -147,7 +147,7 @@ def page_layout():
     """Shared page layout with header and navigation drawer."""
     add_firebase_head_html()
 
-    with ui.header().classes("p-1"):
+    with ui.header().classes("p-1 bg-dark"):
         with ui.row().classes("w-full items-center"):
             with ui.button(icon="menu").props("flat round color=white"):
                 with ui.menu().classes("shadow-sm"):

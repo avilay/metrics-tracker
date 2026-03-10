@@ -62,33 +62,6 @@ def insert_log(conn: sqlite3.Connection, entry: LogEntry) -> LogEntry:
     return entry
 
 
-# def get_logs_for_metric(conn: sqlite3.Connection, metric_id: int) -> list[LogEntry]:
-#     rows = conn.execute(
-#         "SELECT * FROM logs WHERE metric_id = ? ORDER BY recorded_at", (metric_id,)
-#     ).fetchall()
-#     return [LogEntry.from_row(dict(r)) for r in rows]
-
-
-# def get_latest_log(conn: sqlite3.Connection, metric_id: int) -> LogEntry | None:
-#     row = conn.execute(
-#         "SELECT * FROM logs WHERE metric_id = ? ORDER BY recorded_at DESC LIMIT 1",
-#         (metric_id,),
-#     ).fetchone()
-#     if not row:
-#         return None
-#     return LogEntry.from_row(dict(row))
-
-
-# def get_logs_since(
-#     conn: sqlite3.Connection, metric_id: int, since_ts: int
-# ) -> list[LogEntry]:
-#     rows = conn.execute(
-#         "SELECT * FROM logs WHERE metric_id = ? AND recorded_at >= ? ORDER BY recorded_at",
-#         (metric_id, since_ts),
-#     ).fetchall()
-#     return [LogEntry.from_row(dict(r)) for r in rows]
-
-
 def get_logs_for_metric(
     conn: sqlite3.Connection, metric_id: int, tz: str
 ) -> pd.DataFrame:

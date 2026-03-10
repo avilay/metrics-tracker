@@ -92,6 +92,31 @@ def root():
     app.add_static_files("/static", Path("./static"))
     ui.add_css(
         """
+        .body--light {
+            color: rgb(33, 33, 33);
+
+            .color-4 { color: rgb(66, 66, 66); }
+
+            .color-5 { color: rgb(97, 97, 97); }
+
+            .color-6 { color: rgb(117, 117, 117); }
+
+            .color-8 { color: rgb(158, 158, 158); }
+
+        }
+
+        .body--dark {
+            color: rgb(255, 255, 255);
+
+            .color-4 { color: rgb(224, 224, 224); }
+
+            .color 5 { color: rgb(189, 189, 189); }
+
+            .color-6 { color: rgb(158, 158, 158); }
+
+            .color-8 {color: rgb(97, 97, 97); }
+        }
+
         @font-face {
             src: url("/static/NotoSans-VariableFont_wdth,wght.ttf");
             font-family: "Noto Sans";
