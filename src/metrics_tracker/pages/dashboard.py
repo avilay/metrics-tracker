@@ -114,7 +114,9 @@ def _render_card(metric: MetricDefinition, logs: pd.DataFrame):
             last_recorded_at_lbl = humanize.naturaldate(last_recorded_at)
         headline, byline = _card_content(metric, logs)
 
-    with ui.card(align_items="stretch").classes("cursor-pointer metric-card"):
+    with ui.card(align_items="stretch").on(
+        "click", lambda: ui.navigate.to(f"/metric/{metric.id}")
+    ).classes("cursor-pointer metric-card"):
         with ui.card_section().classes("q-pb-none"):
             ui.label(metric.name).classes("text-subtitle1 color-4")
             with ui.row().classes("q-mt-sm items-center"):

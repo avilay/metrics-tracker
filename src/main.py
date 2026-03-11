@@ -9,9 +9,11 @@ from nicegui import app, ui
 
 import metrics_tracker.pages.welcome  # noqa: F401 — registers /welcome route
 from metrics_tracker.components.layout import page_layout
+from metrics_tracker.utils import detect_timezone
 from metrics_tracker.pages import (
     account_page,
     dashboard_page,
+    detail_page,
     dummy_page,
     new_metric_page,
 )
@@ -89,6 +91,8 @@ def root():
         ui.navigate.to("/welcome")
         return
 
+    ui.timer(0, detect_timezone, once=True)
+
     app.add_static_files("/static", Path("./static"))
     ui.add_css(
         """
@@ -156,6 +160,7 @@ def root():
             "/": dashboard_page,
             "/account": account_page,
             "/metric/new": new_metric_page,
+            "/metric/{metric_id}": detail_page,
             "/dummy": dummy_page,
         },
         data={"title": title},

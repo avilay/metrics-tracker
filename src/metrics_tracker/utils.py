@@ -2,6 +2,8 @@ import os
 import sqlite3
 from pathlib import Path
 
+from nicegui import app, ui
+
 DB_PATH = Path(os.environ["DB_PATH"])
 
 COLORS = [
@@ -21,6 +23,17 @@ COLORS = [
     "#ffa726",  # orange-5
     "#ff7043",  # deep-orange-5
 ]
+
+
+async def detect_timezone() -> str:
+    """Detect the browser's timezone via JavaScript and cache it in app.storage.user.
+
+    Returns the IANA timezone string (e.g. "US/Pacific", "America/New_York").
+    The result is refreshed on every call (i.e. every new page load / session).
+    """
+    tz = await ui.run_javascript("Intl.DateTimeFormat().resolvedOptions().timeZone")
+    app.storage.user["tz"] = tz
+    return tz
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
