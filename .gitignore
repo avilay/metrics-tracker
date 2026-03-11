@@ -26,3 +26,6 @@ wheels/
 .idea/
 .vscode/
 .ipynb_checkpoints/
+
+# Playwright MCP
+.playwright-mcp/

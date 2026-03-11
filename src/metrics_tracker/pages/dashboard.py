@@ -22,7 +22,8 @@ def _render_sparklines(metric: MetricDefinition, logs: pd.DataFrame) -> None:
             ui.label("No logs yet").classes("text-subtitle1 color-8 q-ml-xs")
         return
 
-    today = pd.Timestamp.now(tz="US/Pacific").normalize()
+    tz = app.storage.user.get("tz", "US/Pacific")
+    today = pd.Timestamp.now(tz=tz).normalize()
     one_week_ago = today - pd.DateOffset(days=6)
     all_days = pd.date_range(one_week_ago, today, freq="D")
     recent_logs = logs[logs["recorded_at"] >= one_week_ago]
@@ -101,13 +102,11 @@ def _card_content(metric: MetricDefinition, logs: pd.DataFrame) -> Tuple[str, st
 def _render_card(metric: MetricDefinition, logs: pd.DataFrame):
     last_recorded_at_lbl, headline, byline = "", "", ""
 
-    # TODO: Get the user's timezone
-    browser_tz = "US/Pacific"
+    browser_tz = app.storage.user.get("tz", "US/Pacific")
     tz = pytz.timezone(browser_tz)
 
     if logs is not None and not logs.empty:
         last_recorded_at = logs.tail(1).values[0][0].to_pydatetime()
-        # last_recorded_at_lbl = last_recorded_at.strftime("%a, %b %d, %Y %I:%M %p")
         if datetime.now().astimezone(tz) - last_recorded_at < timedelta(days=1):
             last_recorded_at_lbl = humanize.naturaltime(last_recorded_at)
         else:
@@ -143,7 +142,8 @@ def dashboard_page(title):
         metrics = get_metrics_for_user(conn, user_id)
         for metric in metrics:
             metric.id = cast(int, metric.id)
-            logs = get_logs_for_metric(conn, metric.id, "US/Pacific")
+            tz = app.storage.user.get("tz", "US/Pacific")
+            logs = get_logs_for_metric(conn, metric.id, tz)
             data.append((metric, logs))
 
     if not data:
