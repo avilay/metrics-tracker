@@ -30,7 +30,6 @@ def _render_sparklines(metric: MetricDefinition, logs: pd.DataFrame) -> None:
 
     data = []
     if metric.value_type == "none":
-        print(f"Rendering sparklines for {metric.name} ({metric.color})")
         daily_counts = (
             recent_logs.resample("D", on="recorded_at")
             .size()
@@ -38,17 +37,14 @@ def _render_sparklines(metric: MetricDefinition, logs: pd.DataFrame) -> None:
         )
         data = daily_counts.values.tolist()
     elif metric.value_type == "numeric":
-        print(f"Rendering sparklines for {metric.name} ({metric.color})")
         daily_avg = (
             recent_logs.resample("D", on="recorded_at")
             .mean()
             .dropna()
             .reindex(all_days, fill_value=0)
         )
-        print(daily_avg)
         data = daily_avg["value"].values.tolist()
     elif metric.value_type == "categorical":
-        print(f"Rendering sparklines for {metric.name} ({metric.color})")
         last_value = logs.tail(1).values[0][1]
         daily_counts = (
             recent_logs[recent_logs["value"] == last_value]
@@ -57,7 +53,6 @@ def _render_sparklines(metric: MetricDefinition, logs: pd.DataFrame) -> None:
             .reindex(all_days, fill_value=0)
         )
         data = daily_counts.values.tolist()
-    print(data)
     chart = ui.echart(
         {
             "grid": {"top": 5, "right": 5, "bottom": 5, "left": 5},
@@ -113,9 +108,11 @@ def _render_card(metric: MetricDefinition, logs: pd.DataFrame):
             last_recorded_at_lbl = humanize.naturaldate(last_recorded_at)
         headline, byline = _card_content(metric, logs)
 
-    with ui.card(align_items="stretch").on(
-        "click", lambda: ui.navigate.to(f"/metric/{metric.id}")
-    ).classes("cursor-pointer metric-card"):
+    with (
+        ui.card(align_items="stretch")
+        .on("click", lambda: ui.navigate.to(f"/metric/{metric.id}"))
+        .classes("cursor-pointer metric-card")
+    ):
         with ui.card_section().classes("q-pb-none"):
             ui.label(metric.name).classes("text-subtitle1 color-4")
             with ui.row().classes("q-mt-sm items-center"):

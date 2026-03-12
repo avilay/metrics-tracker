@@ -29,3 +29,6 @@ wheels/
 
 # Playwright MCP
 .playwright-mcp/
+
+# Marimo
+__marimo__/

@@ -16,7 +16,7 @@ COLORS = [
     "#26c6da",  # cyan-5
     "#26a69a",  # teal-5
     "#66bb6a",  # green-5
-    "#9ccc65"  # light-green-5,
+    "#9ccc65",  # light-green-5,
     "#d4e157",  # lime-5
     "#ffee58",  # yellow-5
     "#ffca28",  # amber-5
